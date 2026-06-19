@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulk Metadata Stripper</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #222; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.container { background: #fff; border-radius: 12px; padding: 2rem; width: 100%; max-width: 500px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+p.sub { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+.form-group { margin-bottom: 1.25rem; }
+label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; }
+.radio-group { display: flex; gap: 1rem; }
+.radio-group label { font-weight: 400; font-size: 0.9rem; cursor: pointer; }
+input[type="file"] { width: 100%; padding: 0.5rem; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; background: #fafafa; }
+input[type="file"]:hover { border-color: #888; }
+button { width: 100%; padding: 0.75rem; background: #222; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+button:hover { background: #000; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+#status { margin-top: 1rem; font-size: 0.85rem; line-height: 1.6; }
+#status .error { color: #d32f2f; }
+#status .success { color: #2e7d32; }
+#download { display: none; margin-top: 1rem; }
+#download a { display: block; text-align: center; padding: 0.75rem; background: #1976d2; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
+#download a:hover { background: #1565c0; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Metadata Stripper</h1>
+<p class="sub">Strip EXIF / IPTC / XMP metadata from your images in bulk.</p>
+
+<div class="form-group">
+<label for="files">Select images</label>
+<input type="file" id="files" multiple accept="image/jpeg,image/png,image/webp,image/gif,image/tiff,image/bmp">
+</div>
+
+<div class="form-group">
+<label>Output format</label>
+<div class="radio-group">
+<label><input type="radio" name="format" value="JPEG" checked> JPEG</label>
+<label><input type="radio" name="format" value="PNG"> PNG</label>
+</div>
+</div>
+
+<div class="form-group">
+<label>Mode</label>
+<div class="radio-group">
+<label><input type="radio" name="mode" value="overwrite"> Overwrite</label>
+<label><input type="radio" name="mode" value="copy_new" checked> Copy new</label>
+</div>
+</div>
+
+<button id="uploadBtn" onclick="upload()">Strip &amp; Download</button>
+
+<div id="status"></div>
+<div id="download"></div>
+</div>
+
+<script>
+async function upload() {
+const files = document.getElementById('files').files;
+if (!files.length) { document.getElementById('status').innerHTML = '<span class="error">Select at least one image.</span>'; return; }
+
+const format = document.querySelector('input[name="format"]:checked').value;
+const mode = document.querySelector('input[name="mode"]:checked').value;
+const btn = document.getElementById('uploadBtn');
+const status = document.getElementById('status');
+const download = document.getElementById('download');
+
+btn.disabled = true;
+download.style.display = 'none';
+status.innerHTML = '';
+
+const formData = new FormData();
+for (const f of files) formData.append('files', f);
+formData.append('output_format', format);
+formData.append('mode', mode);
+
+try {
+const res = await fetch('/upload', { method: 'POST', body: formData });
+if (!res.ok) {
+const err = await res.json();
+status.innerHTML = `<span class="error">${err.detail || 'Upload failed.'}</span>`;
+btn.disabled = false;
+return;
+}
+const blob = await res.blob();
+const url = URL.createObjectURL(blob);
+download.innerHTML = `<a href="${url}" download="stripped_images.zip">Download ZIP</a>`;
+download.style.display = 'block';
+status.innerHTML = '<span class="success">Done! Your images are ready.</span>';
+} catch (e) {
+status.innerHTML = `<span class="error">Error: ${e.message}</span>`;
+}
+btn.disabled = false;
+}
+</script>
+</body>
+</html>
