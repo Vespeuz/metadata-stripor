@@ -87,11 +87,19 @@ status.innerHTML = `<span class="error">${err.detail || 'Upload failed.'}</span>
 btn.disabled = false;
 return;
 }
+const ct = res.headers.get('content-type') || '';
+if (ct.includes('zip')) {
 const blob = await res.blob();
 const url = URL.createObjectURL(blob);
 download.innerHTML = `<a href="${url}" download="stripped_images.zip">Download ZIP</a>`;
 download.style.display = 'block';
 status.innerHTML = '<span class="success">Done! Your images are ready.</span>';
+} else {
+const html = await res.text();
+document.open();
+document.write(html);
+document.close();
+}
 } catch (e) {
 status.innerHTML = `<span class="error">Error: ${e.message}</span>`;
 }
