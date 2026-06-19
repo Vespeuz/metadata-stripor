@@ -4,3 +4,5 @@ uploads/
 output/
 venv/
 .venv/
+.commandcode/
+docs/superpowers/
